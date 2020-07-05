@@ -65,7 +65,7 @@ i : inclination
 
 - the planet index 1-9 from Mercury to Pluto,  
 
-- the variable index 1-6 for a, , k, h, q, p, 
+- the variable index 1-6 for a, λ, k, h, q, p, 
 
 - the time power α.
 
