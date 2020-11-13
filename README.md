@@ -1,4 +1,4 @@
-# VSOP2013 .NET Core Remastered
+# VSOP2013 .NET 5 Remastered
 
 G. FRANCOU & J.-L. SIMON (MAY 2013) 
  
@@ -32,6 +32,7 @@ VSOP2013p9.dat : Pluto
  
 The planetary solution VSOP2013 is fitted to the numerical integration INPOP10a built at IMCCE, Paris Observatory (http://www.imcce.fr/inpop/).   
 
+Data file download at ftp://ftp.imcce.fr/pub/ephem/planets/vsop2013/solution/
 
 ## FILES DESCRIPTION 
  
@@ -69,3 +70,12 @@ i : inclination
 
 - the time power α.
 
+### More Information 
+
+**VSOP2017.ctl**
+
+This file included a group of ephemerides for verifing calulation.
+
+**VSOP2017.f**
+
+FORTRAN source code
