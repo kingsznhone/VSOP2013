@@ -10,10 +10,7 @@ namespace VSOP2013
 
     public class VSOPCalculator
     {
-        DateTime LastDT;
         PlanetData[] Data;
-        double[] t;
-        double tj;
         //parameters
         double[] ci0, ci1;
         double[] freqpla;
@@ -22,13 +19,12 @@ namespace VSOP2013
         const double dpi = 2 * Math.PI;
         const double a1000 = 365250.0d;
 
-        public VSOPCalculator(PlanetData[] data)
+        public VSOPCalculator(PlanetData[] PlanetDataCollection)
         {
             //Import Planet Data
-            this.Data = data;
+            this.Data = PlanetDataCollection;
 
-            //Init Constant
-            t = new double[21];
+            //Initial Constant
             Initci0();
             Initci1();
             Initfreqpla();
@@ -36,20 +32,19 @@ namespace VSOP2013
             Initgmsol();
         }
 
-        private void SetTime(DateTime TDB)
+        private (double, double[]) SetTime(DateTime TDB)
         {
-            if (LastDT == TDB) return;
-            
             //Convert to TDB J2000.            
-            tj = ToJulianDate2000(TDB) / a1000;
+            double tj = ToJulianDate2000(TDB) / a1000;
             //Iteration on Time 
+            double[] t = new double[21];
             t[0] = 1.0d;
             t[1] = tj;
             for (int i = 2; i < 21; i++)
             {
                 t[i] = t[1] * t[i - 1];
             }
-            LastDT = TDB;
+            return (tj, t);
         }
         private double ToJulianDate2000(DateTime TDB)
         {
@@ -65,26 +60,26 @@ namespace VSOP2013
 
             ParallelLoopResult result = Parallel.For(0, 9, ip =>
             {
-                ephemerides[ip] = CalcIP(ip,TDB);
+                ephemerides[ip] = CalcIP(ip, TDB);
             });
             return ephemerides;
         }
 
-        public PlanetEphemeris CalcIP(int ip,DateTime TDB)
+        public PlanetEphemeris CalcIP(int ip, DateTime TDB)
         {
-            PlanetEphemeris PlanetStat;
-            PlanetStat.DynamicalELL = new double[6];
-            PlanetStat.DynamicalXYZ = new double[6];
-            PlanetStat.ICRSXYZ = new double[6];
-            double[] r=new double[6];
-            ParallelLoopResult result = Parallel.For(0, 6, iv => 
-            { 
-                r[iv]=CalcIV(ip,iv,TDB);
-                PlanetStat.DynamicalELL = r;
-                PlanetStat.DynamicalXYZ = ELLtoXYZ(ip, r);
-                PlanetStat.ICRSXYZ = DynamicaltoICRS(PlanetStat.DynamicalXYZ);
+            PlanetEphemeris Coordinate;
+            Coordinate.DynamicalELL = new double[6];
+            Coordinate.DynamicalXYZ = new double[6];
+            Coordinate.ICRSXYZ = new double[6];
+            double[] ELL = new double[6];
+            ParallelLoopResult result = Parallel.For(0, 6, iv =>
+            {
+                ELL[iv] = CalcIV(ip, iv, TDB);
+                Coordinate.DynamicalELL = ELL;
+                Coordinate.DynamicalXYZ = ELLtoXYZ(ip, ELL);
+                Coordinate.ICRSXYZ = DynamicaltoICRS(Coordinate.DynamicalXYZ);
             });
-                return PlanetStat;
+            return Coordinate;
         }
 
         /// <summary>
@@ -94,10 +89,13 @@ namespace VSOP2013
         /// <param name="iv">variable</param>
         /// <param name="TDB">time</param>
         /// <returns>Elliptic Elements</returns>
-        public double CalcIV(int ip,int iv,DateTime TDB)
+        public double CalcIV(int ip, int iv, DateTime TDB)
         {
-            SetTime(TDB);
-            double r = 0d; 
+            double tj;
+            //Iteration on Time 
+            double[] t;
+            (tj, t) = SetTime(TDB);
+            double r = 0d;
             double aa;
             double bb;
             double arg;
@@ -131,13 +129,15 @@ namespace VSOP2013
         }
 
         /// <summary>
-        /// 
+        /// This is kind of magic that I can't undersdand
+        /// translate from FORTRAN code
         /// </summary>
         /// <param name="ip">planet</param>
-        /// <param name="r">Elliptic Elements</param>
+        /// <param name="ELL">Elliptic Elements</param>
         /// <returns>Ecliptic Heliocentric Coordinates</returns>
-        public double[] ELLtoXYZ(int ip, double[] r)
+        public double[] ELLtoXYZ(int ip, double[] ELL)
         {
+
             double[] w;
             Complex z, z1, z2, z3, zto, zteta;
             double rgm, xa, xl, xk, xh, xq, xp, xfi, xki;
@@ -147,12 +147,12 @@ namespace VSOP2013
             //Initialization
             rgm = Math.Sqrt(gmp[ip] + gmsol);
             w = new double[6];
-            xa = r[0];
-            xl = r[1];
-            xk = r[2];
-            xh = r[3];
-            xq = r[4];
-            xp = r[5];
+            xa = ELL[0];
+            xl = ELL[1];
+            xk = ELL[2];
+            xh = ELL[3];
+            xq = ELL[4];
+            xp = ELL[5];
             //Computation
             xfi = Math.Sqrt(1.0d - (xk * xk) - (xh * xh));
             xki = Math.Sqrt(1.0d - (xq * xq) - (xp * xp));
@@ -202,7 +202,7 @@ namespace VSOP2013
         }
 
         /// <summary>
-        /// 
+        /// Another magic function
         /// </summary>
         /// <param name="w">Ecliptic Heliocentric Coordinates - Dynamical Frame J2000</param>
         /// <returns>Equatorial Heliocentric Coordinates - ICRS Frame J2000</returns>
@@ -212,7 +212,6 @@ namespace VSOP2013
             //Rotation Matrix
             double[,] rot = new double[3, 3];
             double pi = Math.PI;
-            double dpi = 2.0d * pi;
             double dgrad = pi / 180.0d;
             double sdrad = pi / 180.0d / 3600.0d;
             double eps = (23.0d + 26.0d / 60.0d + 21.411360d / 3600.0d) * dgrad;
@@ -270,11 +269,10 @@ namespace VSOP2013
 
             ci0 = new double[17];
             for (int i = 0; i < ci0.Length; i++)
-            {
-                string[] buffer = data[i].Split('d');
-                ci0[i] = Convert.ToDouble(buffer[0]) * (Math.Pow(10, Convert.ToDouble(buffer[1])));
-            }
+                ci0[i] = toDouble(data[i]);
+
         }
+
         //Mean Motions in longitude (radian/cy)
         private void Initci1()
         {
@@ -299,11 +297,10 @@ namespace VSOP2013
 
             ci1 = new double[17];
             for (int i = 0; i < ci1.Length; i++)
-            {
-                string[] buffer = data[i].Split('d');
-                ci1[i] = Convert.ToDouble(buffer[0]) * (Math.Pow(10, Convert.ToDouble(buffer[1])));
-            }
+                ci1[i] = toDouble(data[i]);
+
         }
+
         //Planetary frequency in longitude
         private void Initfreqpla()
         {
@@ -321,11 +318,10 @@ namespace VSOP2013
 
             freqpla = new double[9];
             for (int i = 0; i < freqpla.Length; i++)
-            {
-                string[] buffer = data[i].Split('d');
-                freqpla[i] = Convert.ToDouble(buffer[0]) * (Math.Pow(10, Convert.ToDouble(buffer[1])));
-            }
+                freqpla[i] = toDouble(data[i]);
+
         }
+
         //Masses system
         private void Initgmp()
         {
@@ -344,15 +340,20 @@ namespace VSOP2013
             gmp = new double[9];
             for (int i = 0; i < gmp.Length; i++)
             {
-                string[] buffer = data[i].Split('d');
-                gmp[i] = Convert.ToDouble(buffer[0]) * (Math.Pow(10, Convert.ToDouble(buffer[1])));
+                gmp[i] = toDouble(data[i]);
             }
         }
+
         private void Initgmsol()
         {
             string data = "2.9591220836841438269d-04";
-            string[] buffer = data.Split('d');
-            gmsol = Convert.ToDouble(buffer[0]) * (Math.Pow(10, Convert.ToDouble(buffer[1])));
+            gmsol = toDouble(data);
+        }
+
+        private double toDouble(string s)
+        {
+            string[] buffer = s.Split('d');
+            return Convert.ToDouble(buffer[0]) * (Math.Pow(10, Convert.ToDouble(buffer[1])));
         }
     }
 }

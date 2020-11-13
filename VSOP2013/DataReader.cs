@@ -10,9 +10,13 @@ namespace VSOP2013
 
     public struct Header
     {
+        //body
         public int ip;
+        //variable
         public int iv;
+        //power
         public int it;
+        //sum of terms
         public int nt;
     }
     public struct PlanetData
@@ -21,9 +25,9 @@ namespace VSOP2013
     }
     public struct Variable
     {
-        public Power[] PowerTables;
+        public PowerTable[] PowerTables;
     }
-    public struct Power
+    public struct PowerTable
     {
         public Term[] Terms;
     }
@@ -38,18 +42,18 @@ namespace VSOP2013
     public class DataReader
     {
         string Path;
-        public PlanetData[] Solarsystem;
-        
+        public PlanetData[] PlanetDataCollection;
+
         public DataReader(string Path)
         {
             this.Path = Path;
-            Solarsystem = new PlanetData[9];
+            PlanetDataCollection = new PlanetData[9];
             for (int ip = 0; ip < 9; ip++)
             {
-                Solarsystem[ip].variables = new Variable[6];
+                PlanetDataCollection[ip].variables = new Variable[6];
                 for (int iv = 0; iv < 6; iv++)
                 {
-                    Solarsystem[ip].variables[iv].PowerTables = new Power[21];
+                    PlanetDataCollection[ip].variables[iv].PowerTables = new PowerTable[21];
                 }
             }
         }
@@ -57,11 +61,11 @@ namespace VSOP2013
 
         public PlanetData[] ReadData()
         {
-            ParallelLoopResult result = Parallel.For(0, 9, ip => 
+            ParallelLoopResult result = Parallel.For(0, 9, ip =>
             {
                 ReadPlanet(ip);
             });
-            return Solarsystem;
+            return PlanetDataCollection;
         }
 
         private void ReadPlanet(int ip)
@@ -71,7 +75,7 @@ namespace VSOP2013
             string line;
             {
                 //  C:\VSOPDATA\VSOP2013p1.dat
-                sr = new StreamReader(Path + @"\" + Enum.GetName(typeof(DataFile), ip) + ".dat");
+                sr = new StreamReader(string.Format("{0}\\{1}.dat", Path, Enum.GetName(typeof(DataFile), ip)));
                 while ((line = sr.ReadLine()) != null)
                 {
                     ReadHeader(line, ref H);
@@ -79,15 +83,15 @@ namespace VSOP2013
                     for (int i = 0; i < H.nt; i++)
                     {
                         line = sr.ReadLine();
-                        buffer[i] = ReadTerm(line);
+                        ReadTerm(line,ref buffer[i]);
                     }
 
-                    Solarsystem[H.ip].variables[H.iv].PowerTables[H.it].Terms = buffer;
+                    PlanetDataCollection[H.ip].variables[H.iv].PowerTables[H.it].Terms = buffer;
                 }
             }
             sr.Close();
         }
-        private void ReadHeader(string line, ref Header H)
+        private static void ReadHeader(string line, ref Header H)
         {
 
             int lineptr = 9;
@@ -99,13 +103,13 @@ namespace VSOP2013
             lineptr += 3;
             H.nt = Convert.ToInt32(line.Substring(lineptr, 7).Trim());
         }
-        private Term ReadTerm(string line)
+
+        private static Term ReadTerm(string line,ref Term T)
         {
             int lineptr;
-            Term T;
             int[] Bufferiphi = new int[17];
             int index = 0;
-            double ci = 0d;
+            double ci;
 
             //
             lineptr = 5;
@@ -159,7 +163,7 @@ namespace VSOP2013
             ci = Convert.ToDouble(line.Substring(lineptr, 20).Trim());
             lineptr += 20;
             lineptr++;
-            ci = ci * Math.Pow(10, Convert.ToDouble(line.Substring(lineptr, 3).Trim()));
+            ci *= Math.Pow(10, Convert.ToDouble(line.Substring(lineptr, 3).Trim()));
             lineptr += 3;
             T.ss = ci;
 
@@ -167,7 +171,7 @@ namespace VSOP2013
             lineptr += 20;
             lineptr++;
             ci = ci * Math.Pow(10, Convert.ToDouble(line.Substring(lineptr, 3).Trim()));
-            //lineptr += 3;
+
             T.cc = ci;
 
             return T;

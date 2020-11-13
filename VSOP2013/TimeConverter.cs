@@ -29,6 +29,7 @@ namespace VSOP2013
 
         public static DateTime TTtoTDB(DateTime TT)
         {
+            //Error btw TT&TDB is so small that can be ignored.
             return TT;
         }
 

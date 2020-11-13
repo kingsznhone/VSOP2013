@@ -2,13 +2,11 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="VSOP2013">
-      <HintPath>..\VSOP2013\obj\Debug\netcoreapp3.0\VSOP2013.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\VSOP2013\VSOP2013.csproj" />
   </ItemGroup>
 
 </Project>
