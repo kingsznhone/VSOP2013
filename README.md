@@ -32,7 +32,7 @@ VSOP2013p9.dat : Pluto
  
 The planetary solution VSOP2013 is fitted to the numerical integration INPOP10a built at IMCCE, Paris Observatory (http://www.imcce.fr/inpop/).   
 
-Data file download at ftp://ftp.imcce.fr/pub/ephem/planets/vsop2013/solution/
+Data file download at [VSOPDATA] (ftp://ftp.imcce.fr/pub/ephem/planets/vsop2013/solution/)
 
 ## FILES DESCRIPTION 
  
